@@ -69,3 +69,9 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+
+## Custom for eego
+
+# Large data sets can go in here, no need to commit.
+data/
