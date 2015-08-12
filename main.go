@@ -19,20 +19,13 @@ type Channel struct {
 func main() {
 	runtime.GOMAXPROCS(2)
 
-	inputs := loadData(3, 8, false)
-	min, max := 10000, -10000
-	for _, s := range inputs[0].Samples {
-		if min > s {
-			min = s
-		}
-		if max < s {
-			max = s
-		}
-	}
+	subject, series := 1, 1
+	eeg := loadData(subject, series, false)
+	events := loadEvents(subject, series)
 
 	// Renders the EEG data for one of the channels to screen:
 	s := util.NewScreen(1600, 400, 1)
-	s.Render(asUiChannel(inputs[0].Samples), 1)
+	s.RenderWithEvents(asUiChannel(eeg[0].Samples), asEventChannel("Hi", events), 1)
 }
 
 // loadData Loads EEG channel data for a given subject and series.
@@ -92,13 +85,52 @@ func loadChannels(filename string) []Channel {
 
 // asUiChannel converts an array of values into a realtime(ish) channel of samples.
 func asUiChannel(samples []int) <-chan float64 {
+	min, max := minMax(samples)
 	c := make(chan float64)
 	go func() {
 		for _, s := range samples {
-			// HACK - input range is: -1404 - 1032 for (3, 8, 0)
-			lb, ub := -1404, 1032
-			scaled := 2.00*float64(s-lb)/float64(ub-lb) - 1.0
+			scaled := 2.00*float64(s-min)/float64(max-min) - 1.0
 			c <- scaled
+			time.Sleep(2 * time.Millisecond)
+		}
+	}()
+	return c
+}
+
+// minMax returns the highest and lowest values in an array
+func minMax(values []int) (int, int) {
+	min, max := values[0], values[0]
+	for _, v := range values {
+		if v < min {
+			min = v
+		} else if v > max {
+			max = v
+		}
+	}
+	return min, max
+}
+
+// asEventChannel converts an array of 0/1 events to an event at that time.
+func asEventChannel(message string, events []Channel) <-chan interface{} {
+	c := make(chan interface{})
+	go func() {
+		for i := 0; i < len(events[0].Samples); i++ {
+			switch {
+			case events[0].Samples[i] == 1:
+				c <- util.Event{ 1.0, 0.0, 0.0 }
+			case events[1].Samples[i] == 1:
+				c <- util.Event{ 1.0, 1.0, 0.0 }
+			case events[2].Samples[i] == 1:
+				c <- util.Event{ 0.0, 1.0, 0.0 }
+			case events[3].Samples[i] == 1:
+				c <- util.Event{ 0.0, 1.0, 1.0 }
+			case events[4].Samples[i] == 1:
+				c <- util.Event{ 0.0, 0.0, 1.0 }
+			case events[5].Samples[i] == 1:
+				c <- util.Event{ 1.0, 0.0, 1.0 }	
+			default:
+				c <- nil
+			}
 			time.Sleep(2 * time.Millisecond)
 		}
 	}()
