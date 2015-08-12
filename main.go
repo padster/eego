@@ -25,7 +25,12 @@ func main() {
 
 	// Renders the EEG data for one of the channels to screen:
 	s := util.NewScreen(1600, 400, 1)
-	s.RenderWithEvents(asUiChannel(eeg[0].Samples), asEventChannel("Hi", events), 1)
+
+	lines := []util.Line{
+		util.NewLine(asUiChannel(eeg[ 0].Samples), 1.0, 0.8, 0.8),
+		util.NewLine(asUiChannel(eeg[10].Samples), 0.8, 0.8, 1.0),
+	}
+	s.RenderLinesWithEvents(lines, asEventChannel("Hi", events), 1)
 }
 
 // loadData Loads EEG channel data for a given subject and series.
@@ -99,6 +104,7 @@ func asUiChannel(samples []int) <-chan float64 {
 
 // minMax returns the highest and lowest values in an array
 func minMax(values []int) (int, int) {
+	/*
 	min, max := values[0], values[0]
 	for _, v := range values {
 		if v < min {
@@ -108,6 +114,9 @@ func minMax(values []int) (int, int) {
 		}
 	}
 	return min, max
+	*/
+	// NOTE(padster): some data has some really big extremes. This normalizes them to the same scale.
+	return -1200, 3000
 }
 
 // asEventChannel converts an array of 0/1 events to an event at that time.
