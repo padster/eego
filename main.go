@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/padster/eego/grading"
 	"github.com/padster/go-sound/util"
 )
 
@@ -19,18 +20,24 @@ type Channel struct {
 func main() {
 	runtime.GOMAXPROCS(2)
 
-	subject, series := 1, 1
-	eeg := loadData(subject, series, false)
-	events := loadEvents(subject, series)
+	verifyAuc()
+}
 
-	// Renders the EEG data for one of the channels to screen:
-	s := util.NewScreen(1600, 400, 1)
-
-	lines := []util.Line{
-		util.NewLine(asUiChannel(eeg[ 0].Samples), 1.0, 0.8, 0.8),
-		util.NewLine(asUiChannel(eeg[10].Samples), 0.8, 0.8, 1.0),
-	}
-	s.RenderLinesWithEvents(lines, asEventChannel("Hi", events), 1)
+// verifies the AUC grades for some test cases.
+func verifyAuc() {
+	// TODO(padster): migrate to test suite
+	fmt.Printf("3/4 == %f\n", grading.RocAucScore(
+		[]int{0, 0, 1, 1},
+		[]float64{0.1, 0.4, 0.35, 0.8},
+	))
+	fmt.Printf("1/3 == %f\n", grading.RocAucScore(
+		[]int{0, 0, 0, 0, 1, 1, 1},
+		[]float64{0.1, 0.6, 0.6, 0.23, 0.1, 0.23, 0.5},
+	))
+	fmt.Printf("0.7916.. == %f\n", grading.RocAucScore(
+		[]int{1, 0, 1, 0, 1, 1, 1, 1},
+		[]float64{0.8, 0.5, 0.44, 0.1, 0.2, 0.9, 0.9, 0.5},
+	))
 }
 
 // loadData Loads EEG channel data for a given subject and series.
@@ -105,15 +112,15 @@ func asUiChannel(samples []int) <-chan float64 {
 // minMax returns the highest and lowest values in an array
 func minMax(values []int) (int, int) {
 	/*
-	min, max := values[0], values[0]
-	for _, v := range values {
-		if v < min {
-			min = v
-		} else if v > max {
-			max = v
+		min, max := values[0], values[0]
+		for _, v := range values {
+			if v < min {
+				min = v
+			} else if v > max {
+				max = v
+			}
 		}
-	}
-	return min, max
+		return min, max
 	*/
 	// NOTE(padster): some data has some really big extremes. This normalizes them to the same scale.
 	return -1200, 3000
@@ -126,17 +133,17 @@ func asEventChannel(message string, events []Channel) <-chan interface{} {
 		for i := 0; i < len(events[0].Samples); i++ {
 			switch {
 			case events[0].Samples[i] == 1:
-				c <- util.Event{ 1.0, 0.0, 0.0 }
+				c <- util.Event{1.0, 0.0, 0.0}
 			case events[1].Samples[i] == 1:
-				c <- util.Event{ 1.0, 1.0, 0.0 }
+				c <- util.Event{1.0, 1.0, 0.0}
 			case events[2].Samples[i] == 1:
-				c <- util.Event{ 0.0, 1.0, 0.0 }
+				c <- util.Event{0.0, 1.0, 0.0}
 			case events[3].Samples[i] == 1:
-				c <- util.Event{ 0.0, 1.0, 1.0 }
+				c <- util.Event{0.0, 1.0, 1.0}
 			case events[4].Samples[i] == 1:
-				c <- util.Event{ 0.0, 0.0, 1.0 }
+				c <- util.Event{0.0, 0.0, 1.0}
 			case events[5].Samples[i] == 1:
-				c <- util.Event{ 1.0, 0.0, 1.0 }	
+				c <- util.Event{1.0, 0.0, 1.0}
 			default:
 				c <- nil
 			}
