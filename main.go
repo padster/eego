@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/padster/eego/grading"
+	"github.com/padster/eego/trees"
 	"github.com/padster/go-sound/util"
 )
 
@@ -20,7 +21,9 @@ type Channel struct {
 func main() {
 	runtime.GOMAXPROCS(2)
 
-	verifyAuc()
+	// verifyAuc()
+	f := trees.NewForest(2, 3, 1000)
+	fmt.Printf("%v\n", f)
 }
 
 // verifies the AUC grades for some test cases.
