@@ -4,11 +4,12 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
-	"runtime"
+	// "runtime"
 	"strconv"
 	"time"
 
 	"github.com/padster/eego/grading"
+	"github.com/padster/eego/trees"
 	"github.com/padster/go-sound/util"
 )
 
@@ -18,8 +19,7 @@ type Channel struct {
 }
 
 func main() {
-	runtime.GOMAXPROCS(2)
-
+	// runtime.GOMAXPROCS(2)
 	subject, series := 1, 1
 	eeg := loadData(subject, series, false)
 	events := loadEvents(subject, series)
@@ -33,6 +33,52 @@ func main() {
 	s.RenderLinesWithEvents(lines, asEventChannel("Hi", events), 1)
 
 	// verifyAuc()
+}
+
+func gradeSubjectSeries(subject int, trainSeries int, testSeries int) {
+	// EEG_CHANNEL := "FC1"
+	// EVENT_CHANNEL := "FirstDigitTouch"
+
+	fmt.Printf("Loading training data...\n")
+	data := loadData(subject, trainSeries, false)
+
+	fmt.Printf("Loading training events...\n")
+	events := loadEvents(1, 1)
+	
+	fmt.Printf("Training...\n")
+	for _, vd := range data {
+		for _, ve := range events {
+			f := trees.NewForest(150, 1, 1000)
+			f.Train(vd.Samples, ve.Samples)
+			dId, eId := vd.Id, ve.Id
+			if len(dId) > 4 {
+				dId = dId[:4]
+			}
+			for len(dId) < 4 {
+				dId = dId + "_"
+			}
+			if len(eId) > 7 {
+				eId = eId[:7]
+			}
+			for len(eId) < 7 {
+				eId = eId + "_"
+			}
+
+			fmt.Printf("%s\t%s\tV = %d\t~E = %f\n", 
+				dId, eId, f.DecisionNodes(), f.AverageErrors())
+		}
+	}
+
+	fmt.Printf("Trained!\n")
+}
+
+func channelSamples(channels []Channel, id string) []int {
+	for _, c := range channels {
+		if c.Id == id {
+			return c.Samples
+		}
+	}
+	panic("Cannot access unknown channel " + id + ".")
 }
 
 // verifies the AUC grades for some test cases.

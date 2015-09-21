@@ -1,8 +1,9 @@
 package grading
 
 import (
-	"math"
 	"sort"
+
+	"github.com/padster/eego/util"
 )
 
 // RocAuc returns the area under the Receiver operating characteristic (ROC) curve
@@ -52,9 +53,9 @@ func binaryClfCurve(actual []int, predictions []float64) ([]int, []int, []float6
 	n := len(actual)
 	fps, tps, thresh := make([]int, 0, n), make([]int, 0, n), make([]float64, 0, n)
 
-	toSort := DualSortFI{predictions, actual}
+	toSort := util.DualSortFI{predictions, actual}
 	sort.Sort(toSort)
-	actual, predictions = toSort.v2, toSort.v1
+	actual, predictions = toSort.V2, toSort.V1
 
 	truePos := 0
 	for _, v := range actual {
@@ -65,7 +66,7 @@ func binaryClfCurve(actual []int, predictions []float64) ([]int, []int, []float6
 	falsePos := n - truePos
 
 	for i := 0; i < n; i++ {
-		shouldGuess := i == 0 || !fpeq(predictions[i], predictions[i-1])
+		shouldGuess := i == 0 || !util.Fpeq(predictions[i], predictions[i-1])
 		if shouldGuess {
 			fps = append(fps, falsePos)
 			tps = append(tps, truePos)
@@ -88,11 +89,11 @@ func auc(xs []float64, ys []float64, reorder bool) float64 {
 		panic("auc() requires two equal length arrays of size >= 2")
 	}
 
-	toSort := DualSortFF{xs, ys}
+	toSort := util.DualSortFF{xs, ys}
 	if reorder {
 		sort.Sort(toSort)
 	}
-	return trapz(toSort.v2, toSort.v1)
+	return trapz(toSort.V2, toSort.V1)
 }
 
 // Calculate the area using the trapezium rule
@@ -103,45 +104,4 @@ func trapz(ys []float64, xs []float64) float64 {
 		ans += (xs[i] - xs[i-1]) * (ys[i] + ys[i-1])
 	}
 	return ans * 0.5
-}
-
-// Sortable structure of two lists, by the first then the second
-// UUUGGH, go missing templates/generics.
-type DualSortFF struct {
-	v1 []float64
-	v2 []float64
-}
-
-func (vs DualSortFF) Len() int {
-	return len(vs.v1)
-}
-func (vs DualSortFF) Less(i, j int) bool {
-	return vs.v1[i] < vs.v1[j] || (fpeq(vs.v1[i], vs.v1[j]) && vs.v2[i] < vs.v2[j])
-}
-func (vs DualSortFF) Swap(i, j int) {
-	vs.v1[i], vs.v1[j] = vs.v1[j], vs.v1[i]
-	vs.v2[i], vs.v2[j] = vs.v2[j], vs.v2[i]
-}
-
-type DualSortFI struct {
-	v1 []float64
-	v2 []int
-}
-
-func (vs DualSortFI) Len() int {
-	return len(vs.v1)
-}
-func (vs DualSortFI) Less(i, j int) bool {
-	return vs.v1[i] < vs.v1[j] || (fpeq(vs.v1[i], vs.v1[j]) && vs.v2[i] < vs.v2[j])
-}
-func (vs DualSortFI) Swap(i, j int) {
-	vs.v1[i], vs.v1[j] = vs.v1[j], vs.v1[i]
-	vs.v2[i], vs.v2[j] = vs.v2[j], vs.v2[i]
-}
-
-// Returns if a and b are 'equal' for the floating point definition
-func fpeq(a float64, b float64) bool {
-	// TODO(padster): Move to common utility library.
-	rtol, atol := 1e-5, 1e-8
-	return math.Abs(a-b) < atol+rtol*math.Abs(b)
 }
