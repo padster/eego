@@ -20,7 +20,19 @@ type Channel struct {
 func main() {
 	runtime.GOMAXPROCS(2)
 
-	verifyAuc()
+	subject, series := 1, 1
+	eeg := loadData(subject, series, false)
+	events := loadEvents(subject, series)
+ 
+ 	// Renders the EEG data for one of the channels to screen:
+ 	s := util.NewScreen(1600, 400, 1)
+ 	lines := []util.Line{
+		util.NewLine(asUiChannel(eeg[ 0].Samples), 1.0, 0.8, 0.8),
+		util.NewLine(asUiChannel(eeg[10].Samples), 0.8, 0.8, 1.0),
+	}
+	s.RenderLinesWithEvents(lines, asEventChannel("Hi", events), 1)
+
+	// verifyAuc()
 }
 
 // verifies the AUC grades for some test cases.
